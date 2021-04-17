@@ -30,6 +30,13 @@
 /*****************
     Private data
 ******************/
+#ifdef TOM
+char SSID[] = "ASUS-fampijl";
+char PASSWORD[] = "arrowfamily2014";
+#else
+char SSID[] = "Familiepijl";
+char PASSWORD[] = "Arrow6666!";
+#endif
 int8_t rc;
 time_t curtime;
 int8_t curday;
@@ -85,7 +92,7 @@ bool new_day() {
     Public functions
 **********************/
 void setup() {
-	gen_setTraceOn(false);
+	gen_setTraceOn(true);
 	// Initialize GPIO
 	gen_setup();
 	// Initialize Serial1
@@ -100,32 +107,43 @@ void setup() {
 	}
 	Serial1.println();
 	logline("Trace on? %s", gen_isTraceOn() ? "yes" : "no");
-	// Initialize the WIFI
-	rc = wifi_init();
-	if (rc != 0) {
-		if (rc == 1) {
-			logline("ERROR: Wifi module is broken.");
+	lcd_init();
+	int8_t delay_factor = 2;
+	int8_t rc = wifi_init(SSID, PASSWORD);
+	while (rc != 0) {
+		/*
+			WL_IDLE_STATUS     = 0
+			WL_NO_SSID_AVAIL   = 1
+			WL_SCAN_COMPLETED  = 2
+			WL_CONNECTED       = 3
+			WL_CONNECT_FAILED  = 4
+			WL_CONNECTION_LOST = 5
+			WL_DISCONNECTED    = 6
+			WL_AP_LISTENING    = 7
+			WL_AP_CONNECTED    = 8
+			WL_AP_FAILED       = 9
+		*/
+		if (rc == 1 || rc == 4) {
+			lcd_printf(0, "Foute SSID of");
+			lcd_printf(1, "   wachtwoord");
+			while (true) { }
+		} else if (rc == 5 || rc == 6) {
+			lcd_printf(0, "Geen Wifi netwerk.");
+			lcd_printf(1, "Retry na %d s", 5 * delay_factor);
+			delay(5000 * delay_factor);
+			delay_factor *= 2;
 		} else {
-			logline("ERROR: Cannot connect to local network after 10 tries.");
+			lcd_printf(0, "status=%d", rc);
+			while (true) { }
 		}
-		return;
+		rc = wifi_init(SSID, PASSWORD);
 	}
-	// Set date and time
-	int8_t retries = 0;
 	rc = wifi_setRTC();
-	while (rc != 0 && retries < 5) {
-		if (rc == -1) {
-			logline("Could not set time.");
-			// Could not set the time, so use the flash time
-			setTime(timeConvert());
-		} else if (rc == -2) {
-			// Received an error response so try again
-			retries++;
-			delay(1000);
-			rc = wifi_setRTC();
-		}
+	while (rc == -2) { // wrong response, so try again after 2 sec.
+		delay(2000);
+		rc = wifi_setRTC();
 	}
-	if (retries == 5) {
+	if (rc < 0) {
 		setTime(timeConvert());
 	}
 	curtime = rtc_now();
@@ -134,7 +152,6 @@ void setup() {
 	curday = rtc_day(curtime);
 	curminute = rtc_minute(curtime);
 	restserver_init();
-	lcd_init();
 	sensors_init();
 	epr_init();
 #ifdef INIT_EEPROM

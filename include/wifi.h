@@ -32,7 +32,7 @@
  *         1 = Wifi module is broken
  *         2 = cannot connect to network after 10 tries
 */
-int8_t wifi_init();
+int8_t wifi_init(char *ssid, char *password);
 
 /*
  * Check if we are still connected to the local network

@@ -71,8 +71,8 @@ void tmr_initEEPROM() {
 	NR_OF_TIMERS = tmr_getNrOfTimers();
 	Device *devices = gen_getDevices();
 	int ix = 0;
-	for (int i = 0; i < NR_OF_DEVICES; i++) {
-		for (int j = 0; j < devices[i].nr_of_timers; j++) {
+	for (int8_t i = 0; i < NR_OF_DEVICES; i++) {
+		for (int8_t j = 0; j < devices[i].nr_of_timers; j++) {
 			timers[ix] = {.device = i, .index = j + 1, .minutes_on = 0, .minutes_off = 0, .on_period = 0, .repeat_in_days = 0};
 			ix++;
 			if (ix > NR_OF_TIMERS) {
@@ -103,14 +103,16 @@ void tmr_check(time_t curtime) {
 		logline("Check timers");
 		for (int8_t i = 0; i < NR_OF_TIMERS; i++) {
 			Timer t = timers[i];
-			int16_t curmins = rtc_hour(curtime) * 60 + rtc_minute(curtime);
-			bool temprule;
-			gen_getDeviceState(t.device, &temprule);
-			if (!temprule) {
-				if ( curmins >= t.minutes_on && curmins < t.minutes_off) {
-					gen_setDeviceState(t.device, -1, false);
-				} else {
-					gen_setDeviceState(t.device, 0, false);
+			if (t.repeat_in_days > 0) {
+				int16_t curmins = rtc_hour(curtime) * 60 + rtc_minute(curtime);
+				bool temprule;
+				gen_getDeviceState(t.device, &temprule);
+				if (!temprule) {
+					if ( curmins >= t.minutes_on && curmins < t.minutes_off) {
+						gen_setDeviceState(t.device, -1, false);
+					} else {
+						gen_setDeviceState(t.device, 0, false);
+					}
 				}
 			}
 		}

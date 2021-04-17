@@ -221,7 +221,7 @@ void rls_getRuleSetAsJson(int8_t setnr, char *json) {
 		strcat(json, tmp);
 		for (int j = 0; j < 4; j++) { // 4 actions
 			sprintf(tmp, "{\"device\":\"%s\",\"on_period\":%d}",
-				(ruleset.rules[i].actions[j].device == -1 ? "no device" : gen_getDevices()[ruleset.rules[i].actions[0].device].name),
+				(ruleset.rules[i].actions[j].device == -1 ? "no device" : gen_getDevices()[ruleset.rules[i].actions[j].device].name),
 				ruleset.rules[i].actions[j].on_period);
 			strcat(json, tmp);
 			if (j != 3) {

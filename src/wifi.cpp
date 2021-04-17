@@ -27,13 +27,6 @@
 /*****************
     Private data
 ******************/
-#ifdef TOM
-char SSID[] = "ASUS-fampijl";
-char PASSWORD[] = "arrowfamily2014";
-#else
-char SSID[] = "Familiepijl";
-char PASSWORD[] = "Arrow6666!";
-#endif
 int keyIndex = 0; // my network key Index number
 int status = WL_IDLE_STATUS;
 
@@ -46,43 +39,36 @@ int status = WL_IDLE_STATUS;
  *               1 = Wifi module is broken
  *               2 = cannot connect to network after 10 tries
  */
-int8_t wifi_connect() {
-	char tmp[100];
-	logline("Entering wifi_connect()...");
-	if (WiFi.status() == WL_NO_MODULE) {
-		return 1;
-	}
-	// attempt to connect to Wifi network:
-	int attempt = 0;
-	while (status != WL_CONNECTED && attempt < 10) {
-		attempt++;
-		logline("Attempt %d ...", attempt);
-		WiFi.disconnect();
-		delay(1000);
-		status = WiFi.begin(SSID, keyIndex, PASSWORD);
-		logline("Wifi connection error: %d", status);
-		// wait 10 seconds for connection to be made
-		delay(10000);
-	}
-	if (status != WL_CONNECTED && attempt == 10) {
-		return 2;
-	}
+int8_t wifi_connect(char *ssid, char *password) {
+	logline("Trying to connect to Wifi network...");
+	WiFi.disconnect();
+	delay(1000);
+	status = WiFi.begin(ssid, keyIndex, password);
+	logline("Wifi status = %d", status);
+	/*
+        WL_IDLE_STATUS     = 0
+        WL_NO_SSID_AVAIL   = 1
+        WL_SCAN_COMPLETED  = 2
+        WL_CONNECTED       = 3
+        WL_CONNECT_FAILED  = 4
+        WL_CONNECTION_LOST = 5
+        WL_DISCONNECTED    = 6
+        WL_AP_LISTENING    = 7
+        WL_AP_CONNECTED    = 8
+        WL_AP_FAILED       = 9
+	*/
 	if (status == WL_CONNECTED) {
 		return 0;
+	} else {
+		return status;
 	}
 }
 
 /*****************************************************************
     Public functions (templates in the corresponding header-file)
 ******************************************************************/
-int8_t wifi_init() {
-	int8_t rc = wifi_connect();
-	if (rc == 0) {
-		char ip[16];
-		wifi_getIPaddress(ip);
-		logline("You're connected to the network with IP-address: %s", ip);
-	}
-	return rc;
+int8_t wifi_init(char *ssid, char *password) {
+	return wifi_connect(ssid, password);
 }
 
 int8_t wifi_setRTC() {
@@ -127,7 +113,7 @@ int8_t wifi_setRTC() {
 			String offset = tm.getString("utc_offset");
 			setTime(unixtime + (offset.substring(2, 3).toInt() * 3600));
 			logline("Date and time is synced.");
-		} else{
+		} else {
 			return -1;
 		}
 		if (client.connected()) {
