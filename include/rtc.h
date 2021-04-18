@@ -28,6 +28,7 @@
 *************************/
 time_t rtc_now();
 int8_t rtc_currentDay();
+int8_t rtc_currentHour();
 int8_t rtc_currentMinute();
 int8_t rtc_day(time_t tm);
 int8_t rtc_month(time_t tm);

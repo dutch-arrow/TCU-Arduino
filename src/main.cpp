@@ -40,6 +40,7 @@ char PASSWORD[] = "Arrow6666!";
 int8_t rc;
 time_t curtime;
 int8_t curday;
+int8_t curhour;
 int8_t curminute;
 
 /**********************
@@ -73,6 +74,15 @@ time_t timeConvert() {
 bool next_minute() {
 	if (rtc_currentMinute() != curminute) {
 		curminute = rtc_currentMinute();
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool next_hour() {
+	if (rtc_currentMinute() != curminute) {
+		curhour = rtc_currentHour();
 		return true;
 	} else {
 		return false;
@@ -132,7 +142,7 @@ void setup() {
 			lcd_printf(1, "Retry na %d s", 5 * delay_factor);
 			delay(5000 * delay_factor);
 			delay_factor *= 2;
-		} else {
+		} else if (rc != 3) {
 			lcd_printf(0, "status=%d", rc);
 			while (true) { }
 		}
@@ -181,6 +191,15 @@ void loop() {
 	    logline("A day has passed...");
 		if (wifi_isConnected()) {
 			wifi_setRTC();  // reset the time
+		}
+	}
+	// Every hour
+	if (next_hour()) {
+	    logline("A hour has passed...");
+		// Check if we are still connected to Wifi
+		if (!wifi_isConnected()) {
+			// If not, try to connect again
+			wifi_init(SSID, PASSWORD);
 		}
 	}
 	// Every minute

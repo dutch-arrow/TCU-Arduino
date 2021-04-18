@@ -33,6 +33,9 @@ int8_t rtc_currentDay() {
 	return day(now());
 }
 int8_t rtc_currentMinute() {
+	return hour(now());
+}
+int8_t rtc_currentMinute() {
 	return minute(now());
 }
 int8_t rtc_day(time_t tm) {
