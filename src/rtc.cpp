@@ -32,7 +32,7 @@ time_t rtc_now() {
 int8_t rtc_currentDay() {
 	return day(now());
 }
-int8_t rtc_currentMinute() {
+int8_t rtc_currentHour() {
 	return hour(now());
 }
 int8_t rtc_currentMinute() {

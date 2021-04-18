@@ -200,6 +200,8 @@ void loop() {
 		if (!wifi_isConnected()) {
 			// If not, try to connect again
 			wifi_init(SSID, PASSWORD);
+			delay(2000);
+			restserver_init();
 		}
 	}
 	// Every minute
