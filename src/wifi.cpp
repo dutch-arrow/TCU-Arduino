@@ -126,6 +126,7 @@ int8_t wifi_setRTC() {
 }
 
 bool wifi_isConnected() {
+	logline("WiFi.status() = %d", WiFi.status());
 	return WiFi.status() == WL_CONNECTED;
 }
 

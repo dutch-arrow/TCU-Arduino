@@ -81,7 +81,7 @@ bool next_minute() {
 }
 
 bool next_hour() {
-	if (rtc_currentMinute() != curminute) {
+	if (rtc_currentHour() != curhour) {
 		curhour = rtc_currentHour();
 		return true;
 	} else {
@@ -102,7 +102,7 @@ bool new_day() {
     Public functions
 **********************/
 void setup() {
-	gen_setTraceOn(true);
+	gen_setTraceOn(false);
 	// Initialize GPIO
 	gen_setup();
 	// Initialize Serial1
@@ -122,10 +122,9 @@ void setup() {
 	int8_t rc = wifi_init(SSID, PASSWORD);
 	while (rc != 0) {
 		/*
-			WL_IDLE_STATUS     = 0
+			WL_CONNECTED       = 0
 			WL_NO_SSID_AVAIL   = 1
 			WL_SCAN_COMPLETED  = 2
-			WL_CONNECTED       = 3
 			WL_CONNECT_FAILED  = 4
 			WL_CONNECTION_LOST = 5
 			WL_DISCONNECTED    = 6
@@ -134,11 +133,11 @@ void setup() {
 			WL_AP_FAILED       = 9
 		*/
 		if (rc == 1 || rc == 4) {
-			lcd_printf(0, "Foute SSID of");
-			lcd_printf(1, "   wachtwoord");
+			lcd_printf(0, "%d Foute SSID", rc);
+			lcd_printf(1, "of wachtwoord");
 			while (true) { }
 		} else if (rc == 5 || rc == 6) {
-			lcd_printf(0, "Geen Wifi netwerk.");
+			lcd_printf(0, "%d Geen netwerk.", rc);
 			lcd_printf(1, "Retry na %d s", 5 * delay_factor);
 			delay(5000 * delay_factor);
 			delay_factor *= 2;
@@ -161,6 +160,7 @@ void setup() {
 			rtc_hour(curtime), rtc_minute(curtime), rtc_second(curtime));
 	curday = rtc_day(curtime);
 	curminute = rtc_minute(curtime);
+	curhour = rtc_hour(curtime);
 	restserver_init();
 	sensors_init();
 	epr_init();
@@ -194,26 +194,44 @@ void loop() {
 		}
 	}
 	// Every hour
-	if (next_hour()) {
+	if (next_hour()) { 
 	    logline("A hour has passed...");
 		// Check if we are still connected to Wifi
 		if (!wifi_isConnected()) {
 			// If not, try to connect again
-			wifi_init(SSID, PASSWORD);
-			delay(2000);
-			restserver_init();
+			int rc = wifi_init(SSID, PASSWORD);
+			if (rc == 0) {
+				restserver_init();
+			}
+		}
+		if (wifi_isConnected()) {
+			int8_t retries = 0;
+			rc = wifi_setRTC();
+			while (rc == -2 && retries < 10) { // wrong response, so try again after 2 sec.
+				delay(2000);
+				rc = wifi_setRTC();
+			}
 		}
 	}
 	// Every minute
     if (next_minute()) {
 	    logline("A minute has passed...");
+		// Check if we are still connected to Wifi
+		if (!wifi_isConnected()) {
+			// If not, try to connect again
+			int rc = wifi_init(SSID, PASSWORD);
+			if (rc == 0) {
+				restserver_init();
+			}
+		}
 		sensors_read();
 		lcd_displayLine1(sensors_getTerrariumTemp(), sensors_getRoomTemp());
 		char ip[16];
 		wifi_getIPaddress(ip);
 		lcd_displayLine2(ip, "");
-		rls_checkTempRules(curtime);
 		tmr_check(curtime);
+		rls_checkSprayerRule(curtime);
+		rls_checkTempRules(curtime);
 		gen_increase_time_on();
     }
     int dly = 500; // must be < 1000 = 1 second

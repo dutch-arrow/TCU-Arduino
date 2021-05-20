@@ -64,4 +64,7 @@ void rls_setRuleSetFromJson(int8_t setnr, char *json);
 void rls_getRuleSetAsJson(int8_t setnr, char *json);
 void rls_checkTempRules(time_t curtime);
 
+void rls_switchRulesetsOff(void);
+void rls_switchRulesetsOn(void);
+
 #endif /* RULES_H */

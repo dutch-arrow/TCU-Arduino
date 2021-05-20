@@ -72,8 +72,8 @@ void tmr_initEEPROM() {
 	Device *devices = gen_getDevices();
 	int ix = 0;
 	for (int8_t i = 0; i < NR_OF_DEVICES; i++) {
-		for (int8_t j = 0; j < devices[i].nr_of_timers; j++) {
-			timers[ix] = {.device = i, .index = j + 1, .minutes_on = 0, .minutes_off = 0, .on_period = 0, .repeat_in_days = 0};
+		for (int8_t j = 1; j <= devices[i].nr_of_timers; j++) {
+			timers[ix] = {.device = i, .index = j, .minutes_on = 0, .minutes_off = 0, .on_period = 0, .repeat_in_days = 0};
 			ix++;
 			if (ix > NR_OF_TIMERS) {
 				logline("ERROR: exceeding the NR_OF_TIMERS");
@@ -101,20 +101,45 @@ void tmr_init() {
 void tmr_check(time_t curtime) {
 	if (!rls_isSprayerRuleActive()) { // If sprayer rule is active, skip 
 		logline("Check timers");
+		Timer curtimer;
+		int8_t shouldBeOn = 0;
 		for (int8_t i = 0; i < NR_OF_TIMERS; i++) {
 			Timer t = timers[i];
-			if (t.repeat_in_days > 0) {
-				int16_t curmins = rtc_hour(curtime) * 60 + rtc_minute(curtime);
-				bool temprule;
-				gen_getDeviceState(t.device, &temprule);
-				if (!temprule) {
-					if ( curmins >= t.minutes_on && curmins < t.minutes_off) {
-						gen_setDeviceState(t.device, -1, false);
-					} else {
-						gen_setDeviceState(t.device, 0, false);
+			int16_t curmins = rtc_hour(curtime) * 60 + rtc_minute(curtime);
+			if (i > 0) {
+				if (t.device != curtimer.device) {
+					int8_t setByRule = gen_isSetByRule(curtimer.device);
+					int32_t endtime = gen_getEndTime(curtimer.device);
+					if (shouldBeOn == 1) {
+						if (endtime == -2 && setByRule == 1) {
+							rls_switchRulesetsOff(); // timer has higher prio 
+						}
+						if (curtimer.on_period > 0) {
+							endtime = curtime + curtimer.on_period;
+							gen_showState("switch on period > 0", curtimer.device);
+							gen_setDeviceState(curtimer.device, endtime, setByRule);
+						} else {
+							gen_showState("switch on period <=0", curtimer.device);
+							gen_setDeviceState(curtimer.device, -1, setByRule);
+						}
+					} else { // should be off
+						gen_showState("switch off", curtimer.device);
+						if (endtime == -1 && setByRule == 1) { // timer has overruled rule
+							rls_switchRulesetsOn(); // rules can be activated again 
+						}
+						if (setByRule == 0) {
+							gen_setDeviceState(curtimer.device, 0, 0);
+						}
 					}
+					shouldBeOn = 0;
 				}
 			}
+			if (t.repeat_in_days > 0) {
+				if (curmins >= t.minutes_on && curmins < t.minutes_off || curmins == t.minutes_on && t.on_period > 0) {
+					shouldBeOn = 1;
+				}
+			}
+			curtimer = t;
 		}
 	} else {
 		logline("Timers not checked because sprayer rule is active");
@@ -152,15 +177,15 @@ void tmr_setTimersFromJson(char *json) {
 			int16_t all_on = hr_on * 60 + min_on;
 			int16_t all_off = hr_off * 60 + min_off;
 			int8_t tix = tmr_setTimerValues(dev, ix, all_on, all_off, period, repeat);
-			tmp[0] = 0;
-			tmr_getTimerAsJson(dev, ix, tmp);
-			Serial1.println(tmp);
+			// tmp[0] = 0;
+			// tmr_getTimerAsJson(dev, ix, tmp);
+			// Serial1.println(tmp);
 			epr_saveTimerToEEPROM(tix, &timers[tix]);
-			Timer t;
-			epr_getTimerFromEEPROM(tix, &t);
-			tmp[0] = 0;
-			tmr_getTimerAsJson(&t, tmp);
-			Serial1.println(tmp);
+			// Timer t;
+			// epr_getTimerFromEEPROM(tix, &t);
+			// tmp[0] = 0;
+			// tmr_getTimerAsJson(&t, tmp);
+			// Serial1.println(tmp);
 		}
 		sprintf(json, "");
 	}

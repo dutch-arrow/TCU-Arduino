@@ -35,7 +35,9 @@ bool sprayerRuleActive = false;
 bool sprayerActionsExecuted = false;
 time_t startTime, stopTime;
 int16_t max_period = 0;
-bool ruleActive[2];
+bool rulesetActive[2];
+bool rulesetWasActive[2];
+
 /**********************
     Private functions
 **********************/
@@ -55,6 +57,7 @@ void rls_initEEPROM() {
 void rls_init() {
 	for (int i = 0; i < NR_OF_RULESETS; i++) {
 		epr_getRulesetFromEEPROM(i, &rulesets[i]);
+		rulesetActive[i] = rulesets[i].active;
 	}
 	epr_getSprayerRuleFromEEPROM(&sprayerRule);
 	for (int i = 0; i < 4; i++) {
@@ -91,7 +94,7 @@ void rls_setSprayerRuleFromJson(char *json) {
 			JsonHashTable action = actions.getHashTable(i);
 			char *device = action.getString("device");
 			int16_t on_period = action.getLong("on_period");
-//			logline("Sprayer action %d device='%s' on_period=%d", i, device, on_period);
+			logline("Sprayer action %d device='%s' on_period=%d", i, device, on_period);
 			sprayerRule.actions[i].device =	gen_getDeviceIndex(device);
 			sprayerRule.actions[i].on_period = on_period;
 		}
@@ -121,11 +124,7 @@ void rls_startSprayerRule(time_t curtime) {
 	stopTime = curtime + max_period;
 	sprayerRuleActive = true;
     sprayerActionsExecuted = false;
-	// Make all rules inactive
-    ruleActive[0] = rulesets[0].active;
-    ruleActive[1] = rulesets[1].active;
-    rulesets[0].active = false;
-    rulesets[1].active = false;
+	rls_switchRulesetsOff();
 	logline("Sprayer rule is activated");
 }
 
@@ -142,7 +141,7 @@ void rls_checkSprayerRule(time_t curtime) {
             if (sprayerRule.actions[i].device > 0) {
                 gen_setDeviceState(sprayerRule.actions[i].device,
                                    (curtime + sprayerRule.actions[i].on_period),
-                                   true);
+                                   0);
             }
         }
         sprayerActionsExecuted = true;
@@ -150,8 +149,7 @@ void rls_checkSprayerRule(time_t curtime) {
                sprayerActionsExecuted) {
         sprayerRuleActive = false;
 		// Make all rules that were active, active again
-		rulesets[0].active = ruleActive[0];
-		rulesets[1].active = ruleActive[1];
+		rls_switchRulesetsOn();
     	logline("Sprayer rule is not active anymore");
     }
 }
@@ -179,9 +177,10 @@ void rls_setRuleSetFromJson(int8_t setnr, char *json) {
 		char *ruleset_from = ruleset.getString("from");
 		char *ruleset_to = ruleset.getString("to");
 		int8_t ruleset_temp_ideal = ruleset.getLong("temp_ideal");
-		logline("terrarium %d, active %s, from %s, to %s, ideal %d", ruleset_terrarium, ruleset_active, ruleset_from, ruleset_to, ruleset_temp_ideal);
+//		logline("terrarium %d, active %s, from %s, to %s, ideal %d", ruleset_terrarium, ruleset_active, ruleset_from, ruleset_to, ruleset_temp_ideal);
 		rulesets[setnr].terrarium_nr = ruleset_terrarium;
 		rulesets[setnr].active = strcmp(ruleset_active, "yes") == 0;
+		rulesetActive[setnr] = rulesets[setnr].active;
 		rulesets[setnr].from = atoi(strtok(ruleset_from, ":")) * 60 + atoi(strtok(NULL, ":"));
 		rulesets[setnr].to = atoi(strtok(ruleset_to, ":")) * 60 + atoi(strtok(NULL, ":"));
 		rulesets[setnr].temp_ideal = ruleset_temp_ideal;
@@ -241,72 +240,106 @@ void rls_getRuleSetAsJson(int8_t setnr, char *json) {
 
 void rls_performActions(Action *actions, int32_t curtime) {
 	for (int a = 0; a < 4; a++) { // 4 actions per rule
-		if (actions[a].on_period != 0) { // so -2 or >0. -1 (no endtime) is reserved for timers)
-			if (curtime == 0) {
-				gen_setDeviceState(actions[a].device, 0, false);
-			} else {
-				if (!gen_isDeviceOn(actions[a].device)) {
-					int16_t period = actions[a].on_period;
-					int32_t endtime;
-					bool temprule;
-					if (period > 0) {
-						endtime = curtime + period;
-						gen_setDeviceState(actions[a].device, endtime, true);
-					} else {
-						gen_setDeviceState(actions[a].device, period, true);
-					};
+		if (actions[a].on_period != 0) { // so -2 (untill ideal value is reached) or >0. -1 (no endtime) is reserved for timers)
+			if (curtime == 0) { // switch off
+				gen_showState("switch off", actions[a].device);
+				if (gen_getEndTime(actions[a].device) == -2) {
+					gen_setDeviceState(actions[a].device, 0, 0);
 				}
+			} else { // switch on
+				gen_showState("switch on ", actions[a].device);
+				int16_t period = actions[a].on_period;
+				int32_t endtime;
+				if (actions[a].device != -1 && period > 0) {
+					endtime = curtime + period;
+					gen_setDeviceState(actions[a].device, endtime, 1);
+				} else if (actions[a].device != -1 && period <= 0) {
+					gen_setDeviceState(actions[a].device, period, 1);
+				};
             }
 		}
 	}
 }
 
 void rls_checkTempRules(time_t curtime) {
-	logline("Check temperature rules");
 	int16_t curmins = rtc_hour(curtime) * 60 + rtc_minute(curtime);
 	for (int rs = 0; rs < 2; rs++) { // 2 rulesets
 		RuleSet rlst = rulesets[rs];
-		if (rlst.from > rlst.to) { // period is passing 00:00
-			if (rlst.active && (curmins > rlst.from || (curmins < rlst.from && curmins < rlst.to))) {
-				// rule is now active
-				for (int r = 0; r < 2; r++) { // 2 rules per ruleset
-					Rule rl = rlst.rules[r];
-					if (rl.value < 0 && sensors_getTerrariumTemp() < -rl.value) {
-						// perform actions
-						rls_performActions(rl.actions, curtime);
-					} else if (rl.value < 0 && sensors_getTerrariumTemp() >= -rl.value) {
-						// perform actions
-						rls_performActions(rl.actions, 0);
-					} else if (rl.value > 0 && sensors_getTerrariumTemp() > rl.value) {
-						// perform actions
-						rls_performActions(rl.actions, curtime);
-					} else if (rl.value > 0 && sensors_getTerrariumTemp() <= rl.value) {
-						// perform actions
-						rls_performActions(rl.actions, 0);
+		if (rlst.active) {
+			// rule is now active
+			if (rlst.from > rlst.to) { // period is passing 00:00
+				logline("Check temperature rules of set %d, active period passing 00:00 hours", rs + 1);
+				if ((curmins > rlst.from || (curmins < rlst.from && curmins < rlst.to))) {
+					for (int r = 0; r < 2; r++) { // 2 rules per ruleset
+						Rule rl = rlst.rules[r];
+						if (rl.value < 0 && sensors_getTerrariumTemp() < -rl.value) {
+							// perform actions
+							rls_performActions(rl.actions, curtime);
+						} else if (rl.value < 0 && sensors_getTerrariumTemp() >= -rl.value) {
+							// perform actions
+							rls_performActions(rl.actions, 0);
+						} else if (rl.value > 0 && sensors_getTerrariumTemp() > rl.value) {
+							// perform actions
+							rls_performActions(rl.actions, curtime);
+						} else if (rl.value > 0 && sensors_getTerrariumTemp() <= rl.value) {
+							// perform actions
+							rls_performActions(rl.actions, 0);
+						}
+					}
+				}
+			} else { // normal: from < to
+				logline("Check temperature rules of set %d, normal active period", rs + 1);
+				if (rlst.from < curmins && rlst.to > curmins) {
+					// rule is now active
+					for (int r = 0; r < 2; r++) { // 2 rules per ruleset
+						Rule rl = rlst.rules[r];
+						logline("  ->Rule value=%d Temperature=%d", rl.value, sensors_getTerrariumTemp());
+						if (rl.value < 0 && sensors_getTerrariumTemp() < -rl.value) {
+							// perform actions
+//							logline("set");
+							rls_performActions(rl.actions, curtime);
+						} else if (rl.value < 0 && sensors_getTerrariumTemp() >= -rl.value) {
+							// reset actions
+//							logline("reset");
+							rls_performActions(rl.actions, 0);
+						} else if (rl.value > 0 && sensors_getTerrariumTemp() > rl.value) {
+							// perform actions
+//							logline("set");
+							rls_performActions(rl.actions, curtime);
+						} else if (rl.value > 0 && sensors_getTerrariumTemp() <= rl.value) {
+							// reset actions
+//							logline("reset");
+							rls_performActions(rl.actions, 0);
+						}
 					}
 				}
 			}
-		} else { // normal: from < to
-			if (rlst.active && rlst.from < curmins && rlst.to > curmins) {
-				// rule is now active
+		} else { //rule is not active
+			if (rulesetWasActive[rs]) {
+				logline("Check temperature rules of inactive set %d", rs + 1);
 				for (int r = 0; r < 2; r++) { // 2 rules per ruleset
 					Rule rl = rlst.rules[r];
-					if (rl.value < 0 && sensors_getTerrariumTemp() < -rl.value) {
-						// perform actions
-						rls_performActions(rl.actions, curtime);
-					} else if (rl.value < 0 && sensors_getTerrariumTemp() >= -rl.value) {
-						// perform actions
-						rls_performActions(rl.actions, 0);
-					} else if (rl.value > 0 && sensors_getTerrariumTemp() > rl.value) {
-						// perform actions
-						rls_performActions(rl.actions, curtime);
-					} else if (rl.value > 0 && sensors_getTerrariumTemp() <= rl.value) {
-						// perform actions
-						rls_performActions(rl.actions, 0);
-					}
+					// Undo all actions
+					rls_performActions(rl.actions, 0);
 				}
+				rulesetWasActive[rs] = false;
 			}
 		}
 	}
 }
 
+void rls_switchRulesetsOff(void) {
+	rulesetWasActive[0] = rulesetActive[0];
+	rulesetWasActive[1] = rulesetActive[1];
+	// Make all rules inactive
+    rulesets[0].active = false;
+    rulesets[1].active = false;
+	logline("Rulesets are switched off");
+}
+
+void rls_switchRulesetsOn(void) {
+	// Make all rules active
+    rulesets[0].active = rulesetActive[0];
+    rulesets[1].active = rulesetActive[1];
+	logline("Rulesets are switched on");
+}

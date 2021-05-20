@@ -88,6 +88,7 @@ void sensors_setTestValues(char *testurl) {
 	room_sensor = false;
 	terrarium_temp = atoi(strtok(NULL, "/"));
 	terrarium_sensor = false;
+	logline("Room temp is now %d, terrarium temp is now %d", room_temp, terrarium_temp);
 }
 
 void sensors_setTestOff() {

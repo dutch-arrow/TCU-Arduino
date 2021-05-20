@@ -14,6 +14,7 @@
 ******************/
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "rtc.h"
 /*****************
     Private data
@@ -81,5 +82,4 @@ void rtc_setTime(char *dt) {
 	int32_t tm = makeTime(tmel);
 	setTime(tm);
 }
-
 

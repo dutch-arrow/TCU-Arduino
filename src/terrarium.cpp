@@ -22,17 +22,17 @@
 ******************/
 // EEPROM 250 - 80 = 170 bytes => max 170 / 9 = 18 timers 
 Device devices[] = {
-    {"light1",  pin_light1,  1, 0, false, false, 0},
-    {"light2",  pin_light2,  1, 0, false, false, 0},
-    {"light3",  pin_light3,  1, 0, false, false, 0},
-    {"light4",  pin_light4,  1, 0, false, false, 0},
-    {"light5",  pin_light5,  1, 0, false, true,  0},
-    {"light6",  pin_light6,  0, 0, false, false, 0},
-    {"fan_in",  pin_fan_in,  3, 0, false, false, 0},
-    {"fan_out", pin_fan_out, 3, 0, false, false, 0},
-    {"sprayer", pin_sprayer, 1, 0, false, false, 0},
-    {"mist",    pin_mist,    3, 0, false, false, 0},
-    {"pump",    pin_pump,    3, 0, false, false, 0}};
+    {"light1",  pin_light1,  1, 0, 0, 0, 0},
+    {"light2",  pin_light2,  1, 0, 0, 0, 0},
+    {"light3",  pin_light3,  1, 0, 0, 0, 0},
+    {"light4",  pin_light4,  1, 0, 0, 0, 0},
+    {"light5",  pin_light5,  1, 0, 0, 1, 0},
+    {"light6",  pin_light6,  0, 0, 0, 0, 0},
+    {"fan_in",  pin_fan_in,  3, 0, 0, 0, 0},
+    {"fan_out", pin_fan_out, 3, 0, 0, 0, 0},
+    {"sprayer", pin_sprayer, 1, 0, 0, 0, 0},
+    {"mist",    pin_mist,    3, 0, 0, 0, 0},
+    {"pump",    pin_pump,    3, 0, 0, 0, 0}};
 bool traceon = true;
 extern int8_t NR_OF_TIMERS;
 
@@ -50,7 +50,7 @@ void gen_initEEPROM() {
 void gen_init() {
     for (int i = 0; i < NR_OF_DEVICES; i++) {
 	    if (devices[i].lcc) {
-		    devices[i].on_time = epr_getHoursOn();
+		    devices[i].on_time = 0;
 			break;
 		}
     }
@@ -158,40 +158,49 @@ void gen_getDeviceStates(char *json) {
 }
 
 bool gen_isDeviceOn(int8_t device) {
-	Device dev = devices[device];
-	return dev.end_time != 0;
+	return devices[device].end_time != 0;
 }
 
-int32_t gen_getDeviceState(int8_t device, bool *temprule) {
-	Device dev = devices[device];
-	*temprule = dev.temprule;
-	return dev.end_time;
+int32_t gen_getEndTime(int8_t device) {
+	return devices[device].end_time;
+}
+
+int8_t gen_isSetByRule(int8_t device) {
+	return devices[device].temprule == 0 ? 0 : 1;
 }
 
 // end_time = 0 -> off, = -1 -> on, endless, = -2 -> on, until ideal value, >0 -> on, seconds from 1-1-1970
-void gen_setDeviceState(int8_t device, int32_t end_time, bool temprule) {
-	// Check if device state needs to be changed
-	if (devices[device].end_time != end_time) {
-		if (device < 6) {
-			digitalWrite(devices[device].pin_nr, (end_time == 0 ? HIGH : LOW));
-		} else {
-			digitalWrite(devices[device].pin_nr, (end_time == 0 ? LOW : HIGH));
-		}
-		devices[device].end_time = end_time;
-		if (end_time == 0) {
-			devices[device].temprule = false;
-		} else {
-			devices[device].temprule = temprule;
-		}
-		char tm[15];
-		if (end_time > 0) {
-			sprintf(tm, "until %02d:%02d:%02d", hour(end_time), minute(end_time), second(end_time));
-		}
-		logline("Device %s is switched %s %s", devices[device].name,
-			(end_time == 0 ? "off" : "on"),
-			(end_time == 0 ? "" : (end_time == -1 ? "permanently" : (end_time == -2 ? "untill ideal value is reached" : tm))));
-		if (device == gen_getDeviceIndex("sprayer") && end_time == 0) { // sprayer is switched off
-			rls_startSprayerRule(rtc_now());
+void gen_setDeviceState(int8_t device, int32_t end_time, int8_t temprule) {
+	if (device != -1) {
+		// Check if device state needs to be changed
+		if (devices[device].end_time != end_time) {
+			if (device < 6) {
+				digitalWrite(devices[device].pin_nr, (end_time == 0 ? HIGH : LOW));
+			} else {
+				digitalWrite(devices[device].pin_nr, (end_time == 0 ? LOW : HIGH));
+			}
+			devices[device].end_time = end_time;
+			if (end_time == 0) {
+				devices[device].temprule = 0;
+			} else {
+				devices[device].temprule = temprule;
+			}
+			char tm[15];
+			if (end_time > 0) {
+				sprintf(tm, "until %02d:%02d:%02d", hour(end_time), minute(end_time), second(end_time));
+			}
+			logline("* Device '%s' is switched %s %s", devices[device].name,
+				(end_time == 0 ? "off" : "on"),
+				(end_time == 0 ? "" : (end_time == -1 ? "permanently" : (end_time == -2 ? "until ideal value is reached" : tm))));
+			// Special actions
+			if (device == gen_getDeviceIndex("sprayer") && end_time == 0) { // sprayer is switched off
+				rls_startSprayerRule(rtc_now());
+			}
+			if (device == gen_getDeviceIndex("mist") && end_time != 0) { // mist is switched on
+				rls_switchRulesetsOff();
+			} else if (device == gen_getDeviceIndex("mist") && end_time == 0) { // mist is switched off
+				rls_switchRulesetsOn();
+			}
 		}
 	}
 }
@@ -215,7 +224,7 @@ void gen_setDeviceState(char *devurl) {
 				endTime = now() + atoi(period);
 			}
 		}
-		gen_setDeviceState(dev, endTime, false);
+		gen_setDeviceState(dev, endTime, 0);
 	}
 }
 
@@ -223,17 +232,17 @@ void gen_checkDeviceStates(time_t curtime) {
 	// Checked every second!
 	for (int i = 0; i < NR_OF_DEVICES; i++) {
 		if (devices[i].end_time > 0 && curtime > devices[i].end_time) {
-			gen_setDeviceState(i, 0, false); // switch device off
+			gen_setDeviceState(i, 0, 0); // switch device off
 		}
 	}
 }
 
 void gen_increase_time_on() {
-	logline("Increase time on");
 	for (int i = 0; i < NR_OF_DEVICES; i++) {
 		if (devices[i].lcc && devices[i].end_time != 0) {
 			devices[i].on_time += 1; // executed every minute
 			if (devices[i].on_time > 120) {
+				logline("Decrease lifetime with 2 hours");
 				epr_decreaseHoursOn(2); // save every 2 hours
 				devices[i].on_time = 0;
 			}
@@ -257,5 +266,29 @@ void gen_setCounter(char *devurl) {
 		int32_t value = atoi(strtok(NULL, "/"));
 		epr_setHoursOn(value);
 		logline("Counter for device '%s' is set to %d", lccdev, value);
+	}
+}
+
+void gen_showState(char * txt, int8_t device) {
+	char state1[35];
+	if (devices[device].end_time > 0) {
+		tmElements_t tm;
+		breakTime(devices[device].end_time, tm);
+		sprintf(state1, "on until %02d:%02d:%02d", tm.Hour, tm.Minute, tm.Second);
+	} else if (devices[device].end_time == -1) {
+		strcpy(state1, "always on");
+	} else if (devices[device].end_time == -2) {
+		strcpy(state1, "on until ideal value is reached");
+	}
+	char state2[25];
+	if (devices[device].temprule == 0) {
+		strcpy(state2, "a timer");
+	} else if (devices[device].temprule != 0) {
+		strcpy(state2, "a rule");
+	}
+	if (devices[device].end_time == 0) {
+		logline("  ->%s : Device %s is off", txt, devices[device].name);
+	} else {
+		logline("  ->%s : Device %s is %s set by %s", txt, devices[device].name, state1, state2);
 	}
 }

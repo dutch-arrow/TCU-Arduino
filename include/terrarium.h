@@ -34,11 +34,11 @@
 #define pin_light4       5
 #define pin_light5       6
 #define pin_light6       7
-#define pin_fan_out      8
-#define pin_fan_in       9
-#define pin_sprayer     10
-#define pin_mist        11
-#define pin_pump        12
+#define pin_fan_out     10
+#define pin_fan_in      11
+#define pin_sprayer     12
+#define pin_mist        13
+#define pin_pump        14
 
 #define pin_sensor_out  16
 #define pin_sensor_in   17
@@ -66,9 +66,9 @@ typedef struct {
     char *name;
     int8_t pin_nr;
     int8_t nr_of_timers;
-    int32_t end_time; // on, endtime in seconds since 2000-01-01 or -1 = until ideal value is reached, off = 0
-    bool temprule; // true: device is on because of a temperature rule, false: on because of a timer setting
-    bool lcc; // true: lifecycle of this device is counted
+    int32_t end_time; // on, endtime in seconds since 2000-01-01 or -1 = until ideal value is reached, -2 = endless, off = 0
+    int8_t temprule; // true/1: device is on because of a temperature rule, false/0: on because of a timer setting
+    int8_t lcc; // true: lifecycle of this device is counted
     int32_t on_time; // counting the total number of seconds the device was on
 } Device;
 
@@ -85,10 +85,12 @@ void gen_setTraceOn(bool on);
 void gen_getProperties(char *json);
 void gen_getDeviceStates(char *json);
 bool gen_isDeviceOn(int8_t device);
-int32_t gen_getDeviceState(int8_t device, bool *temprule);
+int32_t gen_getEndTime(int8_t device);
+int8_t gen_isSetByRule(int8_t device);
 void gen_setDeviceState(char *devurl);
-void gen_setDeviceState(int8_t device, int32_t end_time, bool temprule);
+void gen_setDeviceState(int8_t device, int32_t end_time, int8_t temprule);
 void gen_checkDeviceStates(time_t curtime);
+void gen_showState(char *txt, int8_t device);
 void gen_increase_time_on();
 void gen_setCounter(char *devurl);
 

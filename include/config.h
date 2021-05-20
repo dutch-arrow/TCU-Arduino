@@ -10,7 +10,7 @@
 * Created On : 18-2-2021
 * File : config.h
 ***************************************************************/
-#define TOM
+//#define TOM
 /*****************
     Includes
 ******************/
@@ -18,8 +18,6 @@
 /*****************
     Defines
 ******************/
-#define LOGDEVICE Serial
-#define LOGGING true
 
 /*****************
     Structs
