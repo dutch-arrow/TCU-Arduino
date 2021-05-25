@@ -70,6 +70,7 @@ typedef struct {
     int8_t temprule; // true/1: device is on because of a temperature rule, false/0: on because of a timer setting
     int8_t lcc; // true: lifecycle of this device is counted
     int32_t on_time; // counting the total number of seconds the device was on
+    bool manual; // true = device is manually controlled.
 } Device;
 
 /*************************
@@ -87,6 +88,8 @@ void gen_getDeviceStates(char *json);
 bool gen_isDeviceOn(int8_t device);
 int32_t gen_getEndTime(int8_t device);
 int8_t gen_isSetByRule(int8_t device);
+void gen_setDeviceToManual(int8_t device, bool yes);
+bool gen_isDeviceOnManual(int8_t device);
 void gen_setDeviceState(char *devurl);
 void gen_setDeviceState(int8_t device, int32_t end_time, int8_t temprule);
 void gen_checkDeviceStates(time_t curtime);

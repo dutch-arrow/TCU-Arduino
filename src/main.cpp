@@ -102,7 +102,7 @@ bool new_day() {
     Public functions
 **********************/
 void setup() {
-	gen_setTraceOn(false);
+	gen_setTraceOn(true);
 	// Initialize GPIO
 	gen_setup();
 	// Initialize Serial1

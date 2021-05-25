@@ -240,23 +240,25 @@ void rls_getRuleSetAsJson(int8_t setnr, char *json) {
 
 void rls_performActions(Action *actions, int32_t curtime) {
 	for (int a = 0; a < 4; a++) { // 4 actions per rule
-		if (actions[a].on_period != 0) { // so -2 (untill ideal value is reached) or >0. -1 (no endtime) is reserved for timers)
-			if (curtime == 0) { // switch off
-				gen_showState("switch off", actions[a].device);
-				if (gen_getEndTime(actions[a].device) == -2) {
-					gen_setDeviceState(actions[a].device, 0, 0);
+		if (!gen_isDeviceOnManual(actions[a].device)) {
+			if (actions[a].on_period != 0) { // so -2 (untill ideal value is reached) or >0. -1 (no endtime) is reserved for timers)
+				if (curtime == 0) { // switch off
+					gen_showState("switch off", actions[a].device);
+					if (gen_getEndTime(actions[a].device) == -2) {
+						gen_setDeviceState(actions[a].device, 0, 0);
+					}
+				} else { // switch on
+					gen_showState("switch on ", actions[a].device);
+					int16_t period = actions[a].on_period;
+					int32_t endtime;
+					if (actions[a].device != -1 && period > 0) {
+						endtime = curtime + period;
+						gen_setDeviceState(actions[a].device, endtime, 1);
+					} else if (actions[a].device != -1 && period <= 0) {
+						gen_setDeviceState(actions[a].device, period, 1);
+					};
 				}
-			} else { // switch on
-				gen_showState("switch on ", actions[a].device);
-				int16_t period = actions[a].on_period;
-				int32_t endtime;
-				if (actions[a].device != -1 && period > 0) {
-					endtime = curtime + period;
-					gen_setDeviceState(actions[a].device, endtime, 1);
-				} else if (actions[a].device != -1 && period <= 0) {
-					gen_setDeviceState(actions[a].device, period, 1);
-				};
-            }
+			}
 		}
 	}
 }
@@ -293,22 +295,17 @@ void rls_checkTempRules(time_t curtime) {
 					// rule is now active
 					for (int r = 0; r < 2; r++) { // 2 rules per ruleset
 						Rule rl = rlst.rules[r];
-						logline("  ->Rule value=%d Temperature=%d", rl.value, sensors_getTerrariumTemp());
 						if (rl.value < 0 && sensors_getTerrariumTemp() < -rl.value) {
 							// perform actions
-//							logline("set");
 							rls_performActions(rl.actions, curtime);
 						} else if (rl.value < 0 && sensors_getTerrariumTemp() >= -rl.value) {
 							// reset actions
-//							logline("reset");
 							rls_performActions(rl.actions, 0);
 						} else if (rl.value > 0 && sensors_getTerrariumTemp() > rl.value) {
 							// perform actions
-//							logline("set");
 							rls_performActions(rl.actions, curtime);
 						} else if (rl.value > 0 && sensors_getTerrariumTemp() <= rl.value) {
 							// reset actions
-//							logline("reset");
 							rls_performActions(rl.actions, 0);
 						}
 					}

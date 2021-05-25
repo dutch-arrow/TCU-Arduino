@@ -101,46 +101,61 @@ void tmr_init() {
 void tmr_check(time_t curtime) {
 	if (!rls_isSprayerRuleActive()) { // If sprayer rule is active, skip 
 		logline("Check timers");
-		Timer curtimer;
-		int8_t shouldBeOn = 0;
-		for (int8_t i = 0; i < NR_OF_TIMERS; i++) {
-			Timer t = timers[i];
-			int16_t curmins = rtc_hour(curtime) * 60 + rtc_minute(curtime);
-			if (i > 0) {
-				if (t.device != curtimer.device) {
-					int8_t setByRule = gen_isSetByRule(curtimer.device);
-					int32_t endtime = gen_getEndTime(curtimer.device);
-					if (shouldBeOn == 1) {
-						if (endtime == -2 && setByRule == 1) {
-							rls_switchRulesetsOff(); // timer has higher prio 
-						}
-						if (curtimer.on_period > 0) {
-							endtime = curtime + curtimer.on_period;
-							gen_showState("switch on period > 0", curtimer.device);
-							gen_setDeviceState(curtimer.device, endtime, setByRule);
-						} else {
-							gen_showState("switch on period <=0", curtimer.device);
-							gen_setDeviceState(curtimer.device, -1, setByRule);
-						}
-					} else { // should be off
-						gen_showState("switch off", curtimer.device);
-						if (endtime == -1 && setByRule == 1) { // timer has overruled rule
-							rls_switchRulesetsOn(); // rules can be activated again 
-						}
-						if (setByRule == 0) {
-							gen_setDeviceState(curtimer.device, 0, 0);
+	    Timer curtimer;
+	    Timer acttimer;
+	    int8_t shouldBeOn = 0;
+	    int8_t device = 0;
+	    int16_t curmins = rtc_hour(curtime) * 60 + rtc_minute(curtime);
+	    Timer t;
+	    for (int8_t i = 0; i <= NR_OF_TIMERS; i++) {
+		    if (i < NR_OF_TIMERS) {
+			    t = timers[i];
+			    device = t.device;
+		    } else {
+			    device = 0;
+		    }
+		    if (i > 0) {
+			    if (device != curtimer.device) {
+					if (!gen_isDeviceOnManual(curtimer.device)) {
+						if (shouldBeOn == 1) {
+							int8_t setByRule = gen_isSetByRule(acttimer.device);
+							int32_t endtime = gen_getEndTime(acttimer.device);
+							if (endtime == -2 && setByRule == 1) {
+								rls_switchRulesetsOff(); // timer has higher prio 
+							}
+							if (acttimer.on_period > 0) {
+								endtime = curtime + acttimer.on_period;
+								gen_showState("switch on period > 0", acttimer.device);
+								gen_setDeviceState(acttimer.device, endtime, setByRule);
+							} else {
+								gen_showState("switch on period <=0", acttimer.device);
+								gen_setDeviceState(acttimer.device, -1, setByRule);
+							}
+						} else { // should be off
+							int8_t setByRule = gen_isSetByRule(curtimer.device);
+							int32_t endtime = gen_getEndTime(curtimer.device);
+							gen_showState("switch off", curtimer.device);
+							if (endtime == -1 && setByRule == 1) { // timer has overruled rule
+								rls_switchRulesetsOn(); // rules can be activated again 
+							}
+							if (setByRule == 0) {
+								gen_setDeviceState(curtimer.device, 0, 0);
+							}
 						}
 					}
 					shouldBeOn = 0;
 				}
 			}
-			if (t.repeat_in_days > 0) {
-				if (curmins >= t.minutes_on && curmins < t.minutes_off || curmins == t.minutes_on && t.on_period > 0) {
-					shouldBeOn = 1;
+			if (i < NR_OF_TIMERS) {
+				if (t.repeat_in_days > 0) {
+					if ((curmins >= t.minutes_on && curmins < t.minutes_off) || (curmins == t.minutes_on && t.on_period > 0)) {
+						shouldBeOn = 1;
+						acttimer = t;
+					}
 				}
+				curtimer = t;
 			}
-			curtimer = t;
-		}
+	    }
 	} else {
 		logline("Timers not checked because sprayer rule is active");
 	}

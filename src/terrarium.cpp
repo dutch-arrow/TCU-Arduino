@@ -22,17 +22,17 @@
 ******************/
 // EEPROM 250 - 80 = 170 bytes => max 170 / 9 = 18 timers 
 Device devices[] = {
-    {"light1",  pin_light1,  1, 0, 0, 0, 0},
-    {"light2",  pin_light2,  1, 0, 0, 0, 0},
-    {"light3",  pin_light3,  1, 0, 0, 0, 0},
-    {"light4",  pin_light4,  1, 0, 0, 0, 0},
-    {"light5",  pin_light5,  1, 0, 0, 1, 0},
-    {"light6",  pin_light6,  0, 0, 0, 0, 0},
-    {"fan_in",  pin_fan_in,  3, 0, 0, 0, 0},
-    {"fan_out", pin_fan_out, 3, 0, 0, 0, 0},
-    {"sprayer", pin_sprayer, 1, 0, 0, 0, 0},
-    {"mist",    pin_mist,    3, 0, 0, 0, 0},
-    {"pump",    pin_pump,    3, 0, 0, 0, 0}};
+    {"light1",  pin_light1,  1, 0, 0, 0, 0, false},
+    {"light2",  pin_light2,  1, 0, 0, 0, 0, false},
+    {"light3",  pin_light3,  1, 0, 0, 0, 0, false},
+    {"light4",  pin_light4,  1, 0, 0, 0, 0, false},
+    {"light5",  pin_light5,  1, 0, 0, 1, 0, false},
+    {"light6",  pin_light6,  0, 0, 0, 0, 0, false},
+    {"fan_in",  pin_fan_in,  3, 0, 0, 0, 0, false},
+    {"fan_out", pin_fan_out, 3, 0, 0, 0, 0, false},
+    {"sprayer", pin_sprayer, 1, 0, 0, 0, 0, false},
+    {"mist",    pin_mist,    3, 0, 0, 0, 0, false},
+    {"pump",    pin_pump,    3, 0, 0, 0, 0, false}};
 bool traceon = true;
 extern int8_t NR_OF_TIMERS;
 
@@ -135,20 +135,23 @@ void gen_getDeviceStates(char *json) {
 			cntr = 0;
 		}
 		int16_t onTime = dev.on_time / 60;
+		char man[20];
+		sprintf(man,"\"manual\":\"%s\"}", dev.manual ? "yes" : "no");
 		if (dev.end_time > 0) {		  // an endtime is defined
 			time_t tm = dev.end_time; // seconds since 1-1-1970
-			sprintf(temp, "{\"device\":\"%s\",\"state\":\"on\",\"end_time\":\"%02d:%02d:%02d\",\"hours_on\":%d}",
+			sprintf(temp, "{\"device\":\"%s\",\"state\":\"on\",\"end_time\":\"%02d:%02d:%02d\",\"hours_on\":%d,",
 				dev.name, hour(tm), minute(tm), second(tm), cntr);
 		} else if (dev.end_time == 0) { // off
-			sprintf(temp, "{\"device\":\"%s\",\"state\":\"off\",\"hours_on\":%d}",
+			sprintf(temp, "{\"device\":\"%s\",\"state\":\"off\",\"hours_on\":%d,",
 				dev.name, cntr);
 		} else if (dev.end_time == -1) { // on, but endless
-			sprintf(temp, "{\"device\":\"%s\",\"state\":\"on\",\"end_time\":\"no endtime\",\"hours_on\":%d}",
+			sprintf(temp, "{\"device\":\"%s\",\"state\":\"on\",\"end_time\":\"no endtime\",\"hours_on\":%d,",
 				dev.name, cntr);
 		} else if (dev.end_time == -2) { // on, untill ideal value is reached
-			sprintf(temp, "{\"device\":\"%s\",\"state\":\"on\",\"end_time\":\"until ideal temperature is reached\",\"hours_on\":%d}",
+			sprintf(temp, "{\"device\":\"%s\",\"state\":\"on\",\"end_time\":\"until ideal temperature is reached\",\"hours_on\":%d,",
 				dev.name, cntr);
 		}
+		strcat(temp, man);
 		strcat(json, temp);
 		if (i != NR_OF_DEVICES - 1) {
 			strcat(json, ",");
@@ -167,6 +170,13 @@ int32_t gen_getEndTime(int8_t device) {
 
 int8_t gen_isSetByRule(int8_t device) {
 	return devices[device].temprule == 0 ? 0 : 1;
+}
+
+void gen_setDeviceToManual(int8_t device, bool yes) {
+	devices[device].manual = yes;
+}
+bool gen_isDeviceOnManual(int8_t device) {
+	return devices[device].manual;
 }
 
 // end_time = 0 -> off, = -1 -> on, endless, = -2 -> on, until ideal value, >0 -> on, seconds from 1-1-1970
@@ -206,6 +216,7 @@ void gen_setDeviceState(int8_t device, int32_t end_time, int8_t temprule) {
 }
 
 void gen_setDeviceState(char *devurl) {
+	// 'device/on' or 'device/on/xxx' or 'device/off' or 'device/manual' or 'device/auto'
 	char *device = strtok(devurl, "/");
 	int8_t dev = -1;
 	for (int i = 0; i < NR_OF_DEVICES; i++) {
@@ -215,16 +226,22 @@ void gen_setDeviceState(char *devurl) {
 		}
 	}
 	if (dev != -1) {
-		bool on = strcmp(strtok(NULL, "/"), "on") == 0;
 		int32_t endTime = 0;
-		if (on) {
+		char *action = strtok(NULL, "/");
+		if (strcmp(action, "on") == 0) {
 			endTime = -1;
 			char *period = strtok(NULL, "/");
 			if (period != NULL) {
 				endTime = now() + atoi(period);
 			}
+			gen_setDeviceState(dev, endTime, false);
+		} else if (strcmp(action, "off") == 0) {
+			gen_setDeviceState(dev, 0, false);
+		} else if (strcmp(action, "manual") == 0) {
+			gen_setDeviceToManual(dev, true);
+		} else if (strcmp(action, "auto") == 0) {
+			gen_setDeviceToManual(dev, false);
 		}
-		gen_setDeviceState(dev, endTime, 0);
 	}
 }
 
@@ -287,8 +304,8 @@ void gen_showState(char * txt, int8_t device) {
 		strcpy(state2, "a rule");
 	}
 	if (devices[device].end_time == 0) {
-		logline("  ->%s : Device %s is off", txt, devices[device].name);
+		logline("  ->%s : Device %s (%s) is off", txt, devices[device].name, devices[device].manual ? "manual" : "auto");
 	} else {
-		logline("  ->%s : Device %s is %s set by %s", txt, devices[device].name, state1, state2);
+		logline("  ->%s : Device %s (%s) is %s set by %s", txt, devices[device].name, devices[device].manual ? "manual" : "auto", state1, state2);
 	}
 }
