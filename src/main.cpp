@@ -135,7 +135,8 @@ void setup() {
 		if (rc == 1 || rc == 4) {
 			lcd_printf(0, "%d Foute SSID", rc);
 			lcd_printf(1, "of wachtwoord");
-			while (true) { }
+			delay(1000 * delay_factor);
+			delay_factor *= 2;
 		} else if (rc == 5 || rc == 6) {
 			lcd_printf(0, "%d Geen netwerk.", rc);
 			lcd_printf(1, "Retry na %d s", 5 * delay_factor);

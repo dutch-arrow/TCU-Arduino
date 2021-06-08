@@ -277,16 +277,21 @@ void rls_checkTempRules(time_t curtime) {
 						if (rl.value < 0 && sensors_getTerrariumTemp() < -rl.value) {
 							// perform actions
 							rls_performActions(rl.actions, curtime);
-						} else if (rl.value < 0 && sensors_getTerrariumTemp() >= -rl.value) {
+						} else if (rl.value < 0 && sensors_getTerrariumTemp() >= rlst.temp_ideal) {
 							// perform actions
 							rls_performActions(rl.actions, 0);
 						} else if (rl.value > 0 && sensors_getTerrariumTemp() > rl.value) {
 							// perform actions
 							rls_performActions(rl.actions, curtime);
-						} else if (rl.value > 0 && sensors_getTerrariumTemp() <= rl.value) {
+						} else if (rl.value > 0 && sensors_getTerrariumTemp() <= rlst.temp_ideal) {
 							// perform actions
 							rls_performActions(rl.actions, 0);
 						}
+					}
+				} else {
+					for (int r = 0; r < 2; r++) { // 2 rules per ruleset
+						Rule rl = rlst.rules[r];
+						rls_performActions(rl.actions, 0);
 					}
 				}
 			} else { // normal: from < to
@@ -298,16 +303,21 @@ void rls_checkTempRules(time_t curtime) {
 						if (rl.value < 0 && sensors_getTerrariumTemp() < -rl.value) {
 							// perform actions
 							rls_performActions(rl.actions, curtime);
-						} else if (rl.value < 0 && sensors_getTerrariumTemp() >= -rl.value) {
+						} else if (rl.value < 0 && sensors_getTerrariumTemp() >= rlst.temp_ideal) {
 							// reset actions
 							rls_performActions(rl.actions, 0);
 						} else if (rl.value > 0 && sensors_getTerrariumTemp() > rl.value) {
 							// perform actions
 							rls_performActions(rl.actions, curtime);
-						} else if (rl.value > 0 && sensors_getTerrariumTemp() <= rl.value) {
+						} else if (rl.value > 0 && sensors_getTerrariumTemp() <= rlst.temp_ideal) {
 							// reset actions
 							rls_performActions(rl.actions, 0);
 						}
+					}
+				} else {
+					for (int r = 0; r < 2; r++) { // 2 rules per ruleset
+						Rule rl = rlst.rules[r];
+						rls_performActions(rl.actions, 0);
 					}
 				}
 			}
