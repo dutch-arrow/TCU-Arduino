@@ -120,8 +120,8 @@ void rls_getSprayerRuleAsJson(char *json) {
 }
 
 void rls_startSprayerRule(time_t curtime) {
-	startTime = curtime;
-	stopTime = curtime + max_period;
+	startTime = curtime + (sprayerRule.delay * 60);
+	stopTime = startTime + max_period;
 	sprayerRuleActive = true;
     sprayerActionsExecuted = false;
 	rls_switchRulesetsOff();
@@ -145,8 +145,7 @@ void rls_checkSprayerRule(time_t curtime) {
             }
         }
         sprayerActionsExecuted = true;
-    } else if (sprayerRuleActive && curtime > stopTime &&
-               sprayerActionsExecuted) {
+    } else if (sprayerRuleActive && curtime > stopTime && sprayerActionsExecuted) {
         sprayerRuleActive = false;
 		// Make all rules that were active, active again
 		rls_switchRulesetsOn();

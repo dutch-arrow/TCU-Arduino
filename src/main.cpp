@@ -25,8 +25,6 @@
 #include "timers.h"
 #include "rules.h"
 
-//#define INIT_EEPROM = true
-
 /*****************
     Private data
 ******************/
