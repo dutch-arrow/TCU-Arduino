@@ -3,6 +3,10 @@
 		{
 			"name": "Terrarium",
 			"path": "."
+		},
+		{
+			"name": "SDcard",
+			"path": "../SDcard"
 		}
 	],
 	"settings": {

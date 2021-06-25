@@ -295,10 +295,12 @@ void rls_checkTempRules(time_t curtime) {
 				}
 			} else { // normal: from < to
 				logline("Check temperature rules of set %d, normal active period", rs + 1);
+				logline("  from=%d curmins=%d to=%d", rlst.from, curmins, rlst.to);
 				if (rlst.from < curmins && rlst.to > curmins) {
-					// rule is now active
+					// ruleset is now active
 					for (int r = 0; r < 2; r++) { // 2 rules per ruleset
 						Rule rl = rlst.rules[r];
+						logline("  temp=%d rlvalue=%d", sensors_getTerrariumTemp(), rl.value);
 						if (rl.value < 0 && sensors_getTerrariumTemp() < -rl.value) {
 							// perform actions
 							rls_performActions(rl.actions, curtime);
@@ -313,22 +315,24 @@ void rls_checkTempRules(time_t curtime) {
 							rls_performActions(rl.actions, 0);
 						}
 					}
-				} else {
+				} else { // rulest is now not active
 					for (int r = 0; r < 2; r++) { // 2 rules per ruleset
 						Rule rl = rlst.rules[r];
 						rls_performActions(rl.actions, 0);
 					}
 				}
 			}
-		} else { //rule is not active
+		} else { //ruleset is not active
 			if (rulesetWasActive[rs]) {
-				logline("Check temperature rules of inactive set %d", rs + 1);
+				logline("Undo temperature rules of inactive set %d", rs + 1);
 				for (int r = 0; r < 2; r++) { // 2 rules per ruleset
 					Rule rl = rlst.rules[r];
 					// Undo all actions
 					rls_performActions(rl.actions, 0);
 				}
 				rulesetWasActive[rs] = false;
+			} else {
+				logline("Ruleset %d is not active", rs);
 			}
 		}
 	}

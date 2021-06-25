@@ -1,0 +1,19 @@
+15:10:00 A minute has passed...
+15:10:00 WiFi.status() = 3
+15:10:00 Temp Terrarium=-127.0, Room=nan , Hum Room=nan
+15:10:01 Check timers
+15:10:01   ->switch on period <=0 : Device light1 (auto) is always on set by a timer
+15:10:01   ->switch off : Device light2 (auto) is off
+15:10:01   ->switch off : Device light3 (auto) is off
+15:10:01   ->switch off : Device light4 (auto) is off
+15:10:01   ->switch off : Device light5 (auto) is off
+15:10:01   ->switch off : Device fan_in (auto) is off
+15:10:01   ->switch off : Device fan_out (auto) is off
+15:10:01   ->switch off : Device sprayer (auto) is off
+15:10:01   ->switch off : Device mist (auto) is off
+15:10:01   ->switch off : Device pump (auto) is off
+15:10:01 Check sprayer rule
+15:10:01 Check temperature rules of set 1, normal active period
+15:10:01   ->switch on  : Device fan_in (auto) is off
+15:10:01 * Device 'fan_in' is switched on until ideal value is reached
+15:10:01   ->switch off : Device fan_out (auto) is off
