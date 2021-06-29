@@ -248,14 +248,17 @@ void rls_performActions(Action *actions, int32_t curtime) {
 					}
 				} else { // switch on
 					gen_showState("switch on ", actions[a].device);
-					int16_t period = actions[a].on_period;
-					int32_t endtime;
-					if (actions[a].device != -1 && period > 0) {
-						endtime = curtime + period;
-						gen_setDeviceState(actions[a].device, endtime, 1);
-					} else if (actions[a].device != -1 && period <= 0) {
-						gen_setDeviceState(actions[a].device, period, 1);
-					};
+					// if device is on, don't do anything
+					if (gen_getEndTime(actions[a].device) == 0) {
+						int16_t period = actions[a].on_period;
+						int32_t endtime;
+						if (actions[a].device != -1 && period > 0) {
+							endtime = curtime + period;
+							gen_setDeviceState(actions[a].device, endtime, 1);
+						} else if (actions[a].device != -1 && period <= 0) {
+							gen_setDeviceState(actions[a].device, period, 1);
+						}
+					}
 				}
 			}
 		}
@@ -270,7 +273,7 @@ void rls_checkTempRules(time_t curtime) {
 			// rule is now active
 			if (rlst.from > rlst.to) { // period is passing 00:00
 				logline("Check temperature rules of set %d, active period passing 00:00 hours", rs + 1);
-				if ((curmins > rlst.from || (curmins < rlst.from && curmins < rlst.to))) {
+				if ((curmins >= rlst.from || (curmins <= rlst.from && curmins < rlst.to))) {
 					for (int r = 0; r < 2; r++) { // 2 rules per ruleset
 						Rule rl = rlst.rules[r];
 						if (rl.value < 0 && sensors_getTerrariumTemp() < -rl.value) {
@@ -296,7 +299,7 @@ void rls_checkTempRules(time_t curtime) {
 			} else { // normal: from < to
 				logline("Check temperature rules of set %d, normal active period", rs + 1);
 				logline("  from=%d curmins=%d to=%d", rlst.from, curmins, rlst.to);
-				if (rlst.from < curmins && rlst.to > curmins) {
+				if (rlst.from <= curmins && rlst.to > curmins) {
 					// ruleset is now active
 					for (int r = 0; r < 2; r++) { // 2 rules per ruleset
 						Rule rl = rlst.rules[r];
