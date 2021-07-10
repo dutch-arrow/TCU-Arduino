@@ -43,6 +43,9 @@ void epr_init() {
 	timerSize = 9;	  //sizeof(Timer);
 	rulesetSize = 33; //sizeof(RuleSet);
 	sprayerRuleSize = 13; //sizeof(SprayerRule)
+    for (int i = 0 ; i < EEPROM.length() ; i++) {
+        EEPROM.write(i, 0);
+    }
 }
 int8_t epr_getNrOfTimersStored() {
 	return EEPROM.read(ADDRESS_NR_OF_TIMERS);

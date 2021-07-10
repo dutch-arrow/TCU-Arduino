@@ -18,7 +18,7 @@
 /*****************
     Defines
 ******************/
-#define TOM
+//#define TOM
 //#define INIT_EEPROM = true
 
 /*****************
