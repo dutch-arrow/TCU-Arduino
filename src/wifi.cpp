@@ -44,7 +44,6 @@ int8_t wifi_connect(char *ssid, char *password) {
 	WiFi.disconnect();
 	delay(1000);
 	status = WiFi.begin(ssid, keyIndex, password);
-	logline("Wifi status = %d", status);
 	/*
         WL_IDLE_STATUS     = 0
         WL_NO_SSID_AVAIL   = 1
@@ -60,6 +59,7 @@ int8_t wifi_connect(char *ssid, char *password) {
 	if (status == WL_CONNECTED) {
 		return 0;
 	} else {
+		logline("Wifi status = %d", status);
 		return status;
 	}
 }
@@ -126,7 +126,6 @@ int8_t wifi_setRTC() {
 }
 
 bool wifi_isConnected() {
-	logline("WiFi.status() = %d", WiFi.status());
 	return WiFi.status() == WL_CONNECTED;
 }
 

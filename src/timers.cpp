@@ -93,8 +93,37 @@ void tmr_init() {
 	logline("Total number of timers=%d", NR_OF_TIMERS);
 	logline("Timers initialized.");
 	// Get timers from EEPROM
+	int8_t hr_on, min_on, hr_off, min_off;
+	char tmp[200];
+	logline("Registered timers");
 	for (int i = 0; i < NR_OF_TIMERS; i++) {
 		epr_getTimerFromEEPROM(i, &timers[i]);
+		if (timers[i].device != 0 &&timers[i].repeat_in_days == 1) {
+			hr_on = timers[i].minutes_on / 60;
+			min_on = timers[i].minutes_on - hr_on * 60;
+			hr_off = timers[i].minutes_off / 60;
+			min_off = timers[i].minutes_off - hr_off * 60;
+			sprintf(tmp, "  d=%d i=%d, on=%02d:%02d off=%02d:%02d p=%d", 
+				timers[i].device, timers[i].index, hr_on, min_on, hr_off, min_off, timers[i].on_period);
+			logline(tmp);
+		}
+	}
+}
+
+void tmr_dump(char *prefix) {
+	int8_t hr_on, min_on, hr_off, min_off;
+	logline(prefix);
+	char tmp[200];
+	for (int i = 0; i < NR_OF_TIMERS; i++) {
+		if (timers[i].device != 0 && timers[i].repeat_in_days == 1) {
+			hr_on = timers[i].minutes_on / 60;
+			min_on = timers[i].minutes_on - hr_on * 60;
+			hr_off = timers[i].minutes_off / 60;
+			min_off = timers[i].minutes_off - hr_off * 60;
+			sprintf(tmp, "  d=%d i=%d, on=%02d:%02d off=%02d:%02d p=%d", 
+				timers[i].device, timers[i].index, hr_on, min_on, hr_off, min_off, timers[i].on_period);
+			logline(tmp);
+		}
 	}
 }
 
@@ -135,8 +164,9 @@ void tmr_check(time_t curtime) {
 							int8_t setByRule = gen_isSetByRule(curtimer.device);
 							int32_t endtime = gen_getEndTime(curtimer.device);
 							gen_showState("switch off", curtimer.device);
-							if (endtime == -1 && setByRule == 1) { // timer has overruled rule
+							if (endtime == -1 && setByRule == 1) { // timer had overruled rule
 								rls_switchRulesetsOn(); // rules can be activated again 
+								gen_setDeviceState(curtimer.device, -2, 1); // and device is on according to rule
 							}
 							if (setByRule == 0) {
 								gen_setDeviceState(curtimer.device, 0, 0);

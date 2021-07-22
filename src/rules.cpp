@@ -28,7 +28,8 @@
 
 static RuleSet rulesets[] = {
     {0, false, 0, 0, 0, {{0, {{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}}, {0, {{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}}}},
-    {1, false, 0, 0, 0, {{0, {{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}}, {0, {{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}}}}};
+    {1, false, 0, 0, 0, {{0, {{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}}, {0, {{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}}}}
+};
 static SprayerRule sprayerRule = {0, {{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}};
 
 bool sprayerRuleActive = false;
@@ -135,7 +136,7 @@ bool rls_isSprayerRuleActive() { // used by the timer checks
 void rls_checkSprayerRule(time_t curtime) {
     logline("Check sprayer rule");
     if (sprayerRuleActive && curtime > startTime && !sprayerActionsExecuted) {
-    	logline("Sprayer rule actions are executed");
+    	logline("  Sprayer rule actions are executed");
         // execute the actions
         for (int i = 0; i < 4; i++) {
             if (sprayerRule.actions[i].device > 0) {
@@ -149,8 +150,10 @@ void rls_checkSprayerRule(time_t curtime) {
         sprayerRuleActive = false;
 		// Make all rules that were active, active again
 		rls_switchRulesetsOn();
-    	logline("Sprayer rule is not active anymore");
-    }
+    	logline("  Sprayer rule is not active anymore");
+    } else if (!sprayerRuleActive) {
+		logline("  Sprayer rule is not active");
+	}
 }
 
 /*
@@ -266,13 +269,14 @@ void rls_performActions(Action *actions, int32_t curtime) {
 }
 
 void rls_checkTempRules(time_t curtime) {
+    logline("Check other rules");
 	int16_t curmins = rtc_hour(curtime) * 60 + rtc_minute(curtime);
 	for (int rs = 0; rs < 2; rs++) { // 2 rulesets
 		RuleSet rlst = rulesets[rs];
 		if (rlst.active) {
 			// rule is now active
 			if (rlst.from > rlst.to) { // period is passing 00:00
-				logline("Check temperature rules of set %d, active period passing 00:00 hours", rs + 1);
+				logline("  Check temperature rules of set %d, active period passing 00:00 hours", rs + 1);
 				if ((curmins >= rlst.from || (curmins <= rlst.from && curmins < rlst.to))) {
 					for (int r = 0; r < 2; r++) { // 2 rules per ruleset
 						Rule rl = rlst.rules[r];
@@ -297,13 +301,13 @@ void rls_checkTempRules(time_t curtime) {
 					}
 				}
 			} else { // normal: from < to
-				logline("Check temperature rules of set %d, normal active period", rs + 1);
-				logline("  from=%d curmins=%d to=%d", rlst.from, curmins, rlst.to);
+				logline("  Check temperature rules of set %d, normal active period", rs + 1);
+				logline("    from=%d curmins=%d to=%d", rlst.from, curmins, rlst.to);
 				if (rlst.from <= curmins && rlst.to > curmins) {
 					// ruleset is now active
 					for (int r = 0; r < 2; r++) { // 2 rules per ruleset
 						Rule rl = rlst.rules[r];
-						logline("  temp=%d rlvalue=%d", sensors_getTerrariumTemp(), rl.value);
+						logline("    temp=%d rlvalue=%d", sensors_getTerrariumTemp(), rl.value);
 						if (rl.value < 0 && sensors_getTerrariumTemp() < -rl.value) {
 							// perform actions
 							rls_performActions(rl.actions, curtime);
@@ -327,7 +331,7 @@ void rls_checkTempRules(time_t curtime) {
 			}
 		} else { //ruleset is not active
 			if (rulesetWasActive[rs]) {
-				logline("Undo temperature rules of inactive set %d", rs + 1);
+				logline("  Undo temperature rules of inactive set %d", rs + 1);
 				for (int r = 0; r < 2; r++) { // 2 rules per ruleset
 					Rule rl = rlst.rules[r];
 					// Undo all actions
@@ -335,7 +339,7 @@ void rls_checkTempRules(time_t curtime) {
 				}
 				rulesetWasActive[rs] = false;
 			} else {
-				logline("Ruleset %d is not active", rs);
+				logline("  Ruleset %d is not active", rs);
 			}
 		}
 	}

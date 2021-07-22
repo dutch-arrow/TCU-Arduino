@@ -32,5 +32,6 @@
 *************************/
 bool restserver_init();
 void restserver_handle_request();
+bool isRestserverListening();
 
 #endif /* RESTSERVER_H */

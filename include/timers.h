@@ -43,5 +43,6 @@ void tmr_getTimerAsJson(int8_t device, int8_t ix, char *json);
 void tmr_getTimerAsJson(Timer *t, char *json);
 void tmr_getTimersAsJson(char *device, char *json);
 void tmr_check(time_t curtime);
+void tmr_dump(char *prefix);
 
 #endif /* TIMERS_H */

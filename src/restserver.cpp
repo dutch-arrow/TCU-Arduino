@@ -139,11 +139,11 @@ void restserver_handle_request() {
 			// close the connection:
 			client.stop();
 		}
-	} else {
-		logline("Server is not listening: %u", server.status());
-		// Try to restart server
-		restserver_init();
 	}
+}
+
+bool isRestserverListening() {
+	return server.status() == LISTEN;
 }
 
 WiFiServer getServer() {

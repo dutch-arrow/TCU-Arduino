@@ -198,7 +198,14 @@ void loop() {
 		// Check if we are still connected to Wifi
 		if (!wifi_isConnected()) {
 			// If not, try to connect again
+			int8_t delay_factor = 2;
+			int8_t retry = 0;
 			int rc = wifi_init(SSID, PASSWORD);
+			while (rc != 0 && retry < 5) {
+				delay(1000 * delay_factor);
+				delay_factor *= 2;
+				rc = wifi_init(SSID, PASSWORD);
+			}
 			if (rc == 0) {
 				restserver_init();
 			}
@@ -210,6 +217,9 @@ void loop() {
 				delay(2000);
 				rc = wifi_setRTC();
 			}
+			if (!isRestserverListening()) {
+				restserver_init();
+			}
 		}
 	}
 	// Every minute
@@ -217,11 +227,21 @@ void loop() {
 	    logline("A minute has passed...");
 		// Check if we are still connected to Wifi
 		if (!wifi_isConnected()) {
+			logline("Wifi is not available");
 			// If not, try to connect again
+			int8_t delay_factor = 2;
+			int8_t retry = 0;
 			int rc = wifi_init(SSID, PASSWORD);
+			while (rc != 0 && retry < 5) {
+				delay(1000 * delay_factor);
+				delay_factor *= 2;
+				rc = wifi_init(SSID, PASSWORD);
+			}
 			if (rc == 0) {
 				restserver_init();
 			}
+		} else {
+			logline("Wifi is available");
 		}
 		sensors_read();
 		lcd_displayLine1(sensors_getTerrariumTemp(), sensors_getRoomTemp());
