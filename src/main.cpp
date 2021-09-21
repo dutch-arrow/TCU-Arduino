@@ -183,20 +183,10 @@ void setup() {
 void loop() {
 	// Every second
 	curtime = rtc_now();
-	restserver_handle_request();
-    gen_checkDeviceStates(curtime);
-	// Every day
-	if (new_day()) {
-	    logline("A day has passed...");
-		if (wifi_isConnected()) {
-			wifi_setRTC();  // reset the time
-		}
-	}
-	// Every hour
-	if (next_hour()) { 
-	    logline("A hour has passed...");
-		// Check if we are still connected to Wifi
+	// Reset time every hour on the third minute and 30 second
+	if (curminute == 3 && rtc_second(curtime) == 30) {
 		if (!wifi_isConnected()) {
+			logline("Wifi is not available");
 			// If not, try to connect again
 			int8_t delay_factor = 2;
 			int8_t retry = 0;
@@ -211,17 +201,23 @@ void loop() {
 			}
 		}
 		if (wifi_isConnected()) {
+			logline("Wifi is available");
 			int8_t retries = 0;
 			rc = wifi_setRTC();
 			while (rc == -2 && retries < 10) { // wrong response, so try again after 2 sec.
 				delay(2000);
 				rc = wifi_setRTC();
 			}
-			if (!isRestserverListening()) {
-				restserver_init();
+			if (retries != 10) {
+				curtime = rtc_now();
+				curday = rtc_day(curtime);
+				curminute = rtc_minute(curtime);
+				curhour = rtc_hour(curtime);
 			}
 		}
 	}
+	restserver_handle_request();
+    gen_checkDeviceStates(curtime);
 	// Every minute
     if (next_minute()) {
 	    logline("A minute has passed...");
@@ -243,10 +239,11 @@ void loop() {
 		} else {
 			logline("Wifi is available");
 		}
+		// Even if wifi is not available we can still continue
 		sensors_read();
 		lcd_displayLine1(sensors_getTerrariumTemp(), sensors_getRoomTemp());
 		char ip[16];
-		wifi_getIPaddress(ip);
+		wifi_getIPaddress(ip); // Will show 0.0.0.0 when no wifi available
 		lcd_displayLine2(ip, "");
 		tmr_check(curtime);
 		rls_checkSprayerRule(curtime);
