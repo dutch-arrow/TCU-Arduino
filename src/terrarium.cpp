@@ -57,17 +57,21 @@ void gen_init() {
 }
 void gen_setup() {
     pinMode(pin_light1, OUTPUT);
-    digitalWrite(pin_light1, HIGH);
+ //   digitalWrite(pin_light1, HIGH); // Tim
+    digitalWrite(pin_light1, LOW);  //Bjorn
     pinMode(pin_light2, OUTPUT);
-    digitalWrite(pin_light2, HIGH);
+ //   digitalWrite(pin_light2, HIGH); // Tim
+    digitalWrite(pin_light2, LOW);
     pinMode(pin_light3, OUTPUT);
-    digitalWrite(pin_light3, HIGH);
+//    digitalWrite(pin_light3, HIGH); // Tim
+    digitalWrite(pin_light3, HIGH);   // Tim
     pinMode(pin_light4, OUTPUT);
-    digitalWrite(pin_light4, HIGH);
+    digitalWrite(pin_light4, HIGH);   // Tim
     pinMode(pin_light5, OUTPUT);
-    digitalWrite(pin_light5, HIGH);
+//    digitalWrite(pin_light5, HIGH);  // Tim
+    digitalWrite(pin_light5, LOW);
     pinMode(pin_light6, OUTPUT);
-    digitalWrite(pin_light6, HIGH);
+    digitalWrite(pin_light6, HIGH);   // Tim
 	pinMode(pin_sprayer, OUTPUT);
     digitalWrite(pin_sprayer, LOW);
 	pinMode(pin_mist, OUTPUT);
@@ -185,7 +189,8 @@ void gen_setDeviceState(int8_t device, int32_t end_time, int8_t temprule) {
 		// Check if device state needs to be changed
 		if (devices[device].end_time != end_time) {
 			if (device < 6) {
-				digitalWrite(devices[device].pin_nr, (end_time == 0 ? HIGH : LOW));
+//				digitalWrite(devices[device].pin_nr, (end_time == 0 ? HIGH : LOW)); //Tim
+				digitalWrite(devices[device].pin_nr, (end_time == 0 ? LOW : HIGH)); //Bjorn
 			} else {
 				digitalWrite(devices[device].pin_nr, (end_time == 0 ? LOW : HIGH));
 			}
