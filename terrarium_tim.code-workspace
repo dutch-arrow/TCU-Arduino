@@ -3,6 +3,9 @@
 		{
 			"name": "Terrarium_Tim",
 			"path": "."
+		},
+		{
+			"path": "../Terrarium_Bjorn"
 		}
 	],
 	"settings": {

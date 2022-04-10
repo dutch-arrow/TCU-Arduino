@@ -26,13 +26,13 @@ Device devices[] = {
     {"light2",  pin_light2,  1, 0, 0, 0, 0, false},
     {"light3",  pin_light3,  1, 0, 0, 0, 0, false},
     {"light4",  pin_light4,  1, 0, 0, 0, 0, false},
-    {"light5",  pin_light5,  1, 0, 0, 1, 0, false},
-    {"light6",  pin_light6,  0, 0, 0, 0, 0, false},
+    {"uvlight", pin_light5,  1, 0, 0, 1, 0, false},
+    {"light6",  pin_light6,  1, 0, 0, 0, 0, false},
     {"fan_in",  pin_fan_in,  3, 0, 0, 0, 0, false},
     {"fan_out", pin_fan_out, 3, 0, 0, 0, 0, false},
     {"sprayer", pin_sprayer, 1, 0, 0, 0, 0, false},
     {"mist",    pin_mist,    3, 0, 0, 0, 0, false},
-    {"pump",    pin_pump,    3, 0, 0, 0, 0, false}};
+    {"pump",    pin_pump,    2, 0, 0, 0, 0, false}};
 bool traceon = true;
 extern int8_t NR_OF_TIMERS;
 
@@ -57,21 +57,17 @@ void gen_init() {
 }
 void gen_setup() {
     pinMode(pin_light1, OUTPUT);
- //   digitalWrite(pin_light1, HIGH); // Tim
-    digitalWrite(pin_light1, LOW);  //Bjorn
+    digitalWrite(pin_light1, HIGH);
     pinMode(pin_light2, OUTPUT);
- //   digitalWrite(pin_light2, HIGH); // Tim
-    digitalWrite(pin_light2, LOW);
+    digitalWrite(pin_light2, HIGH);
     pinMode(pin_light3, OUTPUT);
-//    digitalWrite(pin_light3, HIGH); // Tim
-    digitalWrite(pin_light3, HIGH);   // Tim
+    digitalWrite(pin_light3, HIGH);
     pinMode(pin_light4, OUTPUT);
-    digitalWrite(pin_light4, HIGH);   // Tim
+    digitalWrite(pin_light4, HIGH);
     pinMode(pin_light5, OUTPUT);
-//    digitalWrite(pin_light5, HIGH);  // Tim
-    digitalWrite(pin_light5, LOW);
+    digitalWrite(pin_light5, HIGH);
     pinMode(pin_light6, OUTPUT);
-    digitalWrite(pin_light6, HIGH);   // Tim
+    digitalWrite(pin_light6, HIGH);
 	pinMode(pin_sprayer, OUTPUT);
     digitalWrite(pin_sprayer, LOW);
 	pinMode(pin_mist, OUTPUT);
@@ -189,8 +185,7 @@ void gen_setDeviceState(int8_t device, int32_t end_time, int8_t temprule) {
 		// Check if device state needs to be changed
 		if (devices[device].end_time != end_time) {
 			if (device < 6) {
-//				digitalWrite(devices[device].pin_nr, (end_time == 0 ? HIGH : LOW)); //Tim
-				digitalWrite(devices[device].pin_nr, (end_time == 0 ? LOW : HIGH)); //Bjorn
+				digitalWrite(devices[device].pin_nr, (end_time == 0 ? HIGH : LOW)); //Tim
 			} else {
 				digitalWrite(devices[device].pin_nr, (end_time == 0 ? LOW : HIGH));
 			}
