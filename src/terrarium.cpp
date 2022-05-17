@@ -28,9 +28,9 @@ Device devices[] = {
     {"light4",  pin_light4,  1, 0, 0, 0, 0, false},
     {"uvlight", pin_light5,  1, 0, 0, 1, 0, false},
     {"light6",  pin_light6,  1, 0, 0, 0, 0, false},
-    {"fan_in",  pin_fan_in,  3, 0, 0, 0, 0, false},
-    {"fan_out", pin_fan_out, 3, 0, 0, 0, 0, false},
-    {"sprayer", pin_sprayer, 1, 0, 0, 0, 0, false},
+    {"fan_in",  pin_fan_in,  1, 0, 0, 0, 0, false},
+    {"fan_out", pin_fan_out, 1, 0, 0, 0, 0, false},
+    {"sprayer", pin_sprayer, 5, 0, 0, 0, 0, false},
     {"mist",    pin_mist,    3, 0, 0, 0, 0, false},
     {"pump",    pin_pump,    2, 0, 0, 0, 0, false}};
 bool traceon = true;

@@ -29,7 +29,7 @@
     Private data
 ******************/
 #ifdef TOM
-char SSID[] = "ASUS-fampijl";
+char SSID[] = "ArrowFamily";
 char PASSWORD[] = "arrowfamily2014";
 #else
 char SSID[] = "Familiepijl";
