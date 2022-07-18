@@ -34,6 +34,7 @@ static SprayerRule sprayerRule = {0, {{-1, 0}, {-1, 0}, {-1, 0}, {-1, 0}}};
 
 bool sprayerRuleActive = false;
 bool sprayerActionsExecuted = false;
+bool mistActive = false;
 time_t startTime, stopTime;
 int16_t max_period = 0;
 bool rulesetActive[2];
@@ -156,6 +157,17 @@ void rls_checkSprayerRule(time_t curtime) {
 	}
 }
 
+void rls_checkMistRule(time_t curtime) {
+	logline("Check mist rule");
+	boolean mistOn = gen_isDeviceOn(gen_getDeviceIndex("mist"));
+	if (mistOn && !mistActive) {
+		rls_switchRulesetsOff();
+		mistActive = true;
+	} else if (!mistOn && mistActive) {
+		rls_switchRulesetsOn();
+		mistActive = false;
+	}
+}
 /*
 {   "terrarium":1,"active":"yes","from":"10:30", "to":"22:15","temp_ideal":26, 
     "rules": [

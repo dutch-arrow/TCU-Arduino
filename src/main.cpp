@@ -29,7 +29,7 @@
     Private data
 ******************/
 #ifdef TOM
-char SSID[] = "ArrowFamily";
+char SSID[] = "TP-LINK_B78D";
 char PASSWORD[] = "arrowfamily2014";
 #else
 char SSID[] = "Familiepijl";
@@ -230,8 +230,9 @@ void loop() {
 			int rc = wifi_init(SSID, PASSWORD);
 			while (rc != 0 && retry < 5) {
 				delay(1000 * delay_factor);
-				delay_factor *= 2;
 				rc = wifi_init(SSID, PASSWORD);
+				retry++;
+				logline("Retry %01d", retry);
 			}
 			if (rc == 0) {
 				restserver_init();
@@ -247,6 +248,7 @@ void loop() {
 		lcd_displayLine2(ip, "");
 		tmr_check(curtime);
 		rls_checkSprayerRule(curtime);
+		rls_checkMistRule(curtime);
 		rls_checkTempRules(curtime);
 		gen_increase_time_on();
     }

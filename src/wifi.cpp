@@ -27,7 +27,7 @@
 /*****************
     Private data
 ******************/
-int keyIndex = 0; // my network key Index number
+uint8_t keyIndex = 0; // my network key Index number
 int status = WL_IDLE_STATUS;
 
 /**********************

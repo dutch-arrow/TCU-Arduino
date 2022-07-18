@@ -60,6 +60,8 @@ void rls_startSprayerRule(time_t curtime);
 bool rls_isSprayerRuleActive();
 void rls_checkSprayerRule(time_t curtime);
 
+void rls_checkMistRule(time_t curtime);
+
 void rls_setRuleSetFromJson(int8_t setnr, char *json);
 void rls_getRuleSetAsJson(int8_t setnr, char *json);
 void rls_checkTempRules(time_t curtime);

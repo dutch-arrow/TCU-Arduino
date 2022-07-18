@@ -98,7 +98,7 @@ void tmr_init() {
 	logline("Registered timers");
 	for (int i = 0; i < NR_OF_TIMERS; i++) {
 		epr_getTimerFromEEPROM(i, &timers[i]);
-		if (timers[i].device != 0 &&timers[i].repeat_in_days == 1) {
+		if (timers[i].device >= 0 &&timers[i].repeat_in_days == 1) {
 			hr_on = timers[i].minutes_on / 60;
 			min_on = timers[i].minutes_on - hr_on * 60;
 			hr_off = timers[i].minutes_off / 60;
@@ -177,10 +177,20 @@ void tmr_check(time_t curtime) {
 				}
 			}
 			if (i < NR_OF_TIMERS) {
-				if (t.repeat_in_days > 0) {
-					if ((curmins >= t.minutes_on && curmins < t.minutes_off) || (curmins == t.minutes_on && t.on_period > 0)) {
+				if (t.repeat_in_days > 0) { // timer is active
+					if (curmins == t.minutes_on && t.minutes_off == 0 && t.on_period > 0) {
 						shouldBeOn = 1;
 						acttimer = t;
+					} else if (t.minutes_on < t.minutes_off) {
+						if ((curmins >= t.minutes_on && curmins < t.minutes_off && t.minutes_off > 0)) {
+							shouldBeOn = 1;
+							acttimer = t;
+						}
+					} else {
+						if (t.minutes_off > 0 && ((curmins >= t.minutes_on && curmins > t.minutes_off) || (curmins < t.minutes_on && curmins < t.minutes_off))) {
+							shouldBeOn = 1;
+							acttimer = t;
+						}
 					}
 				}
 				curtimer = t;
